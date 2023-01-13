@@ -1,0 +1,242 @@
+syntax = "proto3";
+
+option csharp_namespace = "GRPCCMMSClient";
+
+package greet;
+
+// The greeting service definition.
+service Greeter {
+  // Sends a greeting
+  rpc SayHello (HelloRequest) returns (HelloReply);
+}
+
+// The request message containing the user's name.
+message HelloRequest {
+  string name = 1;
+}
+
+// The response message containing the greetings.
+message HelloReply {
+  string message = 1;
+}
+
+
+enum EquipmentServiceStatus {
+	IN_SERVICE = 0;//Indicates that the equipment is in service.
+	NOT_IN_SERVICE = 1;//Indicates that the equipment is not in service.
+	PM_OVERDUE = 2;//Indicates that the equipment is overdue for preventative maintenance.
+}
+
+//An equipment update response code indicates if an equipment update was successful or unsuccessful.
+enum EquipmentUpdateResponseCode {
+	OK = 0;//Indicates that the equipment sync was successful.
+	FAILED = 1;//Indicates that the equipment sync failed.
+}
+
+//An equipment update response message is a standard message response for equipment updates.
+//When the equipment update or sync APIs are called, one of these messages will be returned along with a code.
+enum EquipmentUpdateResponseMessage {
+	SUCCESS = 0;//Equipment was successfully updated.
+	SENSOR_ASSIGNMENT_FAILED = 1;//Unable to assign sensor to equipment. Check server logs for additional information.
+	EQUIPMENT_UPDATE_FAILED = 2;//Unable to update equipment. Check server logs for additional information.
+	UPDATE_FAILED = 3;//Unable to update equipment. Unable to assign sensor to equipment. Check server logs for additional information.
+}
+
+//A location level represents one of the levels in the location hierarchy.
+//The hierarchy can be up to nine levels deep, where each level corresponds to a location-level resource.
+//A location's location-level must be lower than that of its parent location. 
+enum LocationLevel {
+	ENTERPRISE = 0;//Indicates that a location is an enterprise level location.
+	CAMPUS = 1;//Indicates that a location is a campus level location.
+	FACILITY = 2;//Indicates that a location is a facility level location.
+	FLOOR = 3;//Indicates that a location is a floor level location.
+	WING = 4;//Indicates that a location is a wing level location.
+	ZONE = 5;//Indicates that a location is a zone level location.
+	SUBZONE = 6;//Indicates that a location is a subzone level location.
+	ROOM = 7;//Indicates that a location is a room level location.
+	SUBROOM = 8;//Indicates that a location is a subroom level location.
+}
+
+//A resource state represents the overall state of an Equipment data record in LBI.
+enum ResourceState {
+	ACTIVE = 0;//The Equipment item is active in the system, and operations performed on the it can generate events.
+	INACTIVE = 1;//The Equipment item is inactive/disabled in the system, which means it will no longer be monitored for location updates and use status updates by this interface.
+	DELETED = 2;//The Equipment item is deleted in the system, a deleted Equipment item cannot be interacted with by this interface.
+}
+
+
+//Represents non-consumable assets that require tracking.
+//Equipment is typically associated with an RTLS sensor allowing location and telemetry data to be captured.
+message Equipment {
+	string id = 1;
+	string name = 2;
+	string short_name = 3;
+	string notes = 4;
+	string manufacturer = 5;
+	string model = 6;
+	string owner = 7;
+	string serial_number = 8;
+	string fixed_asset_number = 9;
+	string secondary_fixed_asset_number = 10;
+	bool hidden = 11;
+	bool capital_equipment = 12;
+	string depreciation_date = 13;
+	string expiration_date = 14;
+	string placed_in_service_date = 15;	
+	double value = 16;
+	ResourceState resource_state = 17;
+	EquipmentServiceStatus service_status = 18;
+	EquipmentType type = 19;
+	EquipmentUseStatus use_status = 20;
+	Sensor sensor = 21;
+	Location location = 22;
+}
+
+//An equipment location event represents the location of an equipment resource for a moment in history.
+//An equipment location event is created each time an equipment’s location is changed.
+message EquipmentLocationChange {
+	Equipment equipment = 1;	
+	Location old_location = 2;
+	Location new_location = 3;
+	string timestamp = 4;
+}
+
+//Represents a request for an equipment location change data feed.
+//This class currently has no fields, but additional fields may be added in a future release.
+//The purpose of this empty class is to avoid backward breaking API changes to the gRPC service.
+message EquipmentLocationChangesRequest {
+
+}
+
+//An equipment map request represents a request for a PNG image of the floor containing the location of a single equipment resource.
+//This request requires a known CMMS asset id to be provided to execute successfully.
+//This asset id must exist as an external reference on the equipment resource.
+message EquipmentMapRequest {
+	string equipment_id = 1;
+}
+
+message EquipmentType {
+	string name = 1;
+	string parent = 2;
+}
+
+message EquipmentUpdateResponse {
+	
+	EquipmentUpdateResponseMessage message = 1;
+	EquipmentUpdateResponseCode code = 2;
+	Equipment equipment = 3;
+}
+
+
+message EquipmentUseStatus {
+	string name = 1;
+	bool indicates_in_use = 2;
+}
+
+message EquipmentUseStatusChange {
+	Equipment equipment = 1;
+	EquipmentUseStatus old_use_status = 2;
+	EquipmentUseStatus new_use_status = 3;
+	string timestamp = 4;
+}
+
+message EquipmentUseStatusChangesRequest {
+
+}
+
+message AllEquipmentUseStatusesRequest {
+
+}
+
+message Image {
+	bytes content = 1;
+}
+
+message Location {
+	string id = 1;
+	string name = 2;
+	string parent = 3;
+	LocationLevel location_level = 4;
+	string key = 5;
+}
+
+message AllLocationsRequest {
+	bool with_key = 1;
+}
+
+message LocationRequest {
+	string id = 1;
+	string key = 2;
+}
+
+message Sensor {
+	string provider = 1;
+	string label = 2;
+	bool reporting = 3;
+	bool assigned = 4;
+}
+
+message SensorRequest {
+	string provider = 1;
+	string label = 2;
+}
+
+message AllSensorsRequest {
+	string provider = 1;
+}
+
+message AllEquipmentRequest {
+	oneof resource_state_filter {
+		ResourceState resource_state = 1;
+	}
+}
+
+message EquipmentRequest {
+	string id = 1;
+}
+
+message AllEquipmentTypesRequest {
+
+}
+
+message EquipmentTypeRequest {
+	string name = 1;
+}
+
+message VersionRequest { }
+
+message VersionResponse {
+	string version = 1;
+}
+
+service CMMS {
+    rpc GetVersion(VersionRequest) returns (VersionResponse);
+	
+	rpc GetAllEquipment(AllEquipmentRequest) returns (stream Equipment);
+	
+	rpc GetEquipment(EquipmentRequest) returns (Equipment);
+	
+	rpc AddOrUpdateEquipment(Equipment) returns (EquipmentUpdateResponse);	
+	
+	rpc SynchronizeEquipment(stream Equipment) returns (stream EquipmentUpdateResponse);
+	
+	rpc GetAllSensors(AllSensorsRequest) returns (stream Sensor);
+	
+	rpc GetSensor(SensorRequest) returns (Sensor);
+	
+	rpc GetAllLocations(AllLocationsRequest) returns (stream Location);
+	
+	rpc GetLocation(LocationRequest) returns (Location);
+	
+	rpc GetAllEquipmentUseStatuses(AllEquipmentUseStatusesRequest) returns (stream EquipmentUseStatus);
+	
+	rpc GetEquipmentUseStatusChanges(EquipmentUseStatusChangesRequest) returns (stream EquipmentUseStatusChange);
+	
+	rpc GetEquipmentLocationChanges(EquipmentLocationChangesRequest) returns (stream EquipmentLocationChange);
+	
+	rpc GetEquipmentMap(EquipmentMapRequest) returns (Image);
+	
+	rpc GetAllEquipmentTypes(AllEquipmentTypesRequest) returns (stream EquipmentType);
+	
+	rpc GetEquipmentType(EquipmentTypeRequest) returns (EquipmentType);
+}
